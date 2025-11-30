@@ -9,20 +9,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>TECHNO VERSE PANEL</h1>
-            <p></p>
+            <h1>🔐 TECHNO VERSE PANEL</h1>
+            <div class="connection-status">
+                <span id="connectionStatus" class="status-checking">🔄 Checking...</span>
+            </div>
         </div>
 
         <div class="grid">
             <!-- Sidebar -->
             <div class="sidebar">
                 <div class="profile-section">
-                    <div class="profile-badge">ADMIN MODE</div>
+                    <div class="profile-badge">👑 ADMIN MODE</div>
                     <p>Key Management System</p>
                 </div>
 
                 <div class="card">
-                    <h3>ACTIVE PROFILE</h3>
+                    <h3>📊 ACTIVE PROFILE</h3>
                     <div class="profile-info">
                         <div><strong>Default</strong></div>
                         <div class="stats">
@@ -39,30 +41,39 @@
                 </div>
 
                 <div class="card">
-                    <h3>QUICK ACTIONS</h3>
-                    <button class="btn" onclick="showAddKeyModal()" style="width: 100%; margin-bottom: 10px;">
-                        + Add New Key
+                    <h3>⚡ QUICK ACTIONS</h3>
+                    <button class="btn btn-primary" onclick="showAddKeyModal()" style="width: 100%; margin-bottom: 10px;">
+                        ➕ Add New Key
                     </button>
                     <button class="btn btn-secondary" onclick="refreshData()" style="width: 100%;">
                         🔄 Refresh Data
                     </button>
+                </div>
+
+                <div class="card">
+                    <h3>⌨️ SHORTCUTS</h3>
+                    <div style="font-size: 12px; line-height: 1.8;">
+                        <div><kbd>Ctrl + K</kbd> Add Key</div>
+                        <div><kbd>Ctrl + R</kbd> Refresh</div>
+                        <div><kbd>ESC</kbd> Close Modal</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Main Content -->
             <div class="main-content">
                 <div class="tabs">
-                    <div class="tab active" onclick="switchTab('keys')">Keys Management</div>
-                    <div class="tab" onclick="switchTab('analytics')">Analytics</div>
+                    <div class="tab active" onclick="switchTab('keys')">🔑 Keys Management</div>
+                    <div class="tab" onclick="switchTab('analytics')">📈 Analytics</div>
                 </div>
 
                 <!-- Keys Tab -->
                 <div id="keys-tab" class="tab-content active">
                     <div class="search-box">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search keys, HWIDs, notes..." onkeyup="filterKeys()">
+                        <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search keys, HWIDs, notes..." onkeyup="filterKeys()">
                     </div>
 
-                    <div class="alert" id="alert"></div>
+                    <div class="alert" id="alert" style="display: none;"></div>
 
                     <div class="table-container">
                         <table class="table">
@@ -73,12 +84,13 @@
                                     <th>Status</th>
                                     <th>HWID</th>
                                     <th>Notes</th>
+                                    <th>Days Left</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="keysTable">
                                 <tr>
-                                    <td colspan="6" class="loading">Loading keys...</td>
+                                    <td colspan="7" class="loading">⏳ Loading keys...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -88,8 +100,8 @@
                 <!-- Analytics Tab -->
                 <div id="analytics-tab" class="tab-content">
                     <div class="card">
-                        <h3>SYSTEM ANALYTICS</h3>
-                        <div class="stats">
+                        <h3>📊 SYSTEM ANALYTICS</h3>
+                        <div class="stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-top: 20px;">
                             <div class="stat-item">
                                 <div class="stat-value" id="totalUsers">0</div>
                                 <div class="stat-label">Total Users</div>
@@ -108,6 +120,41 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3>📈 KEY DISTRIBUTION</h3>
+                        <div style="margin-top: 20px;">
+                            <div class="progress-bar-container">
+                                <div class="progress-label">
+                                    <span>Active Keys</span>
+                                    <span id="activePercentage">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="activeProgress" class="progress-fill" style="width: 0%; background: #4CAF50;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-bar-container" style="margin-top: 15px;">
+                                <div class="progress-label">
+                                    <span>Banned Keys</span>
+                                    <span id="bannedPercentage">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="bannedProgress" class="progress-fill" style="width: 0%; background: #f44336;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-bar-container" style="margin-top: 15px;">
+                                <div class="progress-label">
+                                    <span>Expired Keys</span>
+                                    <span id="expiredPercentage">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="expiredProgress" class="progress-fill" style="width: 0%; background: #ff9800;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,23 +163,52 @@
     <!-- Add Key Modal -->
     <div id="addKeyModal" class="modal">
         <div class="modal-content">
-            <h3>Add New Key</h3>
-            <div class="form-group">
-                <label>Key</label>
-                <input type="text" id="newKey" class="form-control" placeholder="Enter key">
-            </div>
-            <div class="form-group">
-                <label>Expire Days</label>
-                <input type="number" id="expireDays" class="form-control" value="30" min="1">
-            </div>
-            <div class="form-group">
-                <label>Notes</label>
-                <input type="text" id="keyNotes" class="form-control" placeholder="Optional notes">
-            </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="addNewKey()">Add Key</button>
-                <button class="btn btn-danger" onclick="hideAddKeyModal()">Cancel</button>
-            </div>
+            <h3>➕ Add New Key</h3>
+            <form id="addKeyForm" onsubmit="addNewKey(event); return false;">
+                <div class="form-group">
+                    <label>🔑 Key *</label>
+                    <input type="text" id="newKey" class="form-control" placeholder="Enter key (e.g., VIP-2024-001)" required>
+                </div>
+                <div class="form-group">
+                    <label>📅 Expire Days *</label>
+                    <input type="number" id="expireDays" class="form-control" value="30" min="1" max="3650" required>
+                    <small style="color: #888;">Between 1 and 3650 days</small>
+                </div>
+                <div class="form-group">
+                    <label>📝 Notes (Optional)</label>
+                    <textarea id="keyNotes" class="form-control" placeholder="Add notes about this key..." rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Add Key</button>
+                    <button type="button" class="btn btn-danger" onclick="hideAddKeyModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Key Modal -->
+    <div id="updateKeyModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ Update Key</h3>
+            <form id="updateKeyForm" onsubmit="updateKey(event); return false;">
+                <div class="form-group">
+                    <label>🔑 Key</label>
+                    <input type="text" id="updateKey" class="form-control" readonly style="background: #2a2a2a; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>📅 New Expire Days *</label>
+                    <input type="number" id="updateExpireDays" class="form-control" min="1" max="3650" required>
+                    <small style="color: #888;">Days from today</small>
+                </div>
+                <div class="form-group">
+                    <label>📝 Notes</label>
+                    <textarea id="updateNotes" class="form-control" placeholder="Update notes..." rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Update Key</button>
+                    <button type="button" class="btn btn-danger" onclick="hideUpdateModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
