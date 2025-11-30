@@ -18,16 +18,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Khởi tạo ứng dụng
 async function initApp() {
-    showAlert('🔍 Checking connection...', 'info');
+    console.log('🚀 Admin Panel Ready!');
+    showAlert('🔍 Connecting to API...', 'info');
     
-    // Test connection trước
+    // Đợi một chút để đảm bảo DOM ready
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Test connection
     const connected = await testConnection();
     
     if (connected) {
-        showAlert('✅ Connected to Google Sheets API', 'success');
+        console.log('✅ API Connected!');
+        showAlert('✅ Connected successfully!', 'success');
         await loadKeysData();
     } else {
-        showAlert('⚠️ Using offline mode with mock data', 'warning');
+        console.log('⚠️ Using offline mode');
+        showAlert('⚠️ Cannot connect to API. Using demo data.', 'warning');
         await loadMockData();
     }
     
@@ -51,64 +57,84 @@ function switchTab(tabName) {
     event.target.classList.add('active');
 }
 
-// JSONP Request function - Fixed
+// JSONP Request function - Fixed script loading
 function jsonpRequest(url) {
     return new Promise((resolve, reject) => {
         requestId++;
-        const callbackName = 'jsonpCallback_' + requestId;
+        const callbackName = 'jsonpCallback_' + requestId + '_' + Date.now();
         let timeoutId;
         let scriptElement;
+        let isResolved = false;
         
         // Tạo callback function
         window[callbackName] = function(data) {
+            if (isResolved) return;
+            isResolved = true;
+            
             console.log('✅ JSONP callback received:', data);
             if (timeoutId) clearTimeout(timeoutId);
             resolve(data);
-            cleanup();
+            
+            // Cleanup sau một chút
+            setTimeout(() => cleanup(), 100);
         };
 
         // Cleanup function
         function cleanup() {
             try {
-                delete window[callbackName];
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                }
                 if (scriptElement && scriptElement.parentNode) {
                     scriptElement.parentNode.removeChild(scriptElement);
                 }
             } catch (e) {
-                console.error('Cleanup error:', e);
+                console.warn('Cleanup warning:', e);
             }
         }
 
         // Tạo script tag
         scriptElement = document.createElement('script');
-        scriptElement.id = 'jsonpScript_' + callbackName;
+        scriptElement.type = 'text/javascript';
+        scriptElement.async = true;
         
         // Xử lý URL - đảm bảo có dấu ? hoặc &
         const separator = url.includes('?') ? '&' : '?';
-        scriptElement.src = url + separator + 'callback=' + callbackName + '&_t=' + Date.now();
+        scriptElement.src = url + separator + 'callback=' + callbackName;
         
         console.log('🔧 JSONP Request URL:', scriptElement.src);
         
-        scriptElement.onerror = (error) => {
+        // Xử lý lỗi
+        scriptElement.onerror = function(error) {
+            if (isResolved) return;
+            isResolved = true;
+            
             console.error('❌ Script load error:', error);
             if (timeoutId) clearTimeout(timeoutId);
             reject(new Error('JSONP request failed - script load error'));
             cleanup();
         };
         
-        scriptElement.onload = () => {
-            console.log('✅ Script loaded successfully');
-        };
+        // Không cần onload vì callback sẽ tự gọi
         
-        document.head.appendChild(scriptElement);
+        // Append script vào head
+        try {
+            document.head.appendChild(scriptElement);
+        } catch (e) {
+            console.error('❌ Failed to append script:', e);
+            reject(new Error('Failed to create JSONP request'));
+            cleanup();
+            return;
+        }
         
         // Timeout after 20 seconds
         timeoutId = setTimeout(() => {
+            if (isResolved) return;
+            isResolved = true;
+            
             console.error('❌ Request timeout');
-            if (window[callbackName]) {
-                reject(new Error('Request timeout after 20 seconds'));
-                cleanup();
-            }
+            reject(new Error('Request timeout after 20 seconds'));
+            cleanup();
         }, 20000);
     });
 }
@@ -591,36 +617,32 @@ function updateConnectionStatus() {
     }
 }
 
-// Test API connection - Enhanced
+// Test API connection - Enhanced with better error handling
 async function testConnection() {
     console.log('🔍 Testing connection to API...');
     console.log('API URL:', CONFIG.API_URL);
     
     try {
-        // Test với endpoint 'test' trước
+        // Test với endpoint 'test'
         const result = await apiCall('test', {});
-        console.log('Test result:', result);
+        console.log('✅ Test result:', result);
         
         if (result && result.success) {
             console.log('✅ Connection successful!');
             return true;
         } else {
             console.log('⚠️ API responded but success=false:', result);
-            return false;
+            // Thử getkeys nếu test không thành công
+            try {
+                const result2 = await apiCall('getkeys', {});
+                return result2 && result2.success;
+            } catch (e) {
+                return false;
+            }
         }
     } catch (error) {
         console.error('🔴 Connection test failed:', error);
-        
-        // Thử lại với getkeys nếu test fail
-        try {
-            console.log('Trying getkeys endpoint...');
-            const result2 = await apiCall('getkeys', {});
-            console.log('getkeys result:', result2);
-            return result2 && result2.success;
-        } catch (error2) {
-            console.error('🔴 getkeys also failed:', error2);
-            return false;
-        }
+        return false;
     }
 }
 
