@@ -1,6 +1,6 @@
 // Configuration
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbyMbqmS6RK4Q09yaLwYyyTIdCYFq0mD4FpoZGRKIr1Poaqqrzt157fk7dMG4hravdGVfA/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzl45r61HF5gXPJxXl5aDB6miEBK7ZQ4z7IGH0g6sHPKv7LNFMErW7JJV2J5iNLh02J1g/exec',
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
     REQUEST_TIMEOUT: 15000
@@ -127,12 +127,10 @@ async function apiCallWithRetry(endpoint, params = {}, retries = CONFIG.MAX_RETR
     }
 }
 
-// Universal API call function - Fixed URL Building
+// Universal API call function - Fixed for CORS
 async function apiCall(endpoint, params = {}) {
-    // Build URL - FIXED: Google Apps Script cần format: /exec/endpoint
-    // Không thêm dấu / nếu API_URL đã có /exec
-    const baseUrl = CONFIG.API_URL;
-    let url = baseUrl.endsWith('/exec') ? `${baseUrl}/${endpoint}` : `${baseUrl}${endpoint}`;
+    // Build URL - Format: BASE_URL/endpoint?params
+    let url = `${CONFIG.API_URL}/${endpoint}`;
     
     // Thêm parameters
     const queryParams = [];
@@ -151,8 +149,8 @@ async function apiCall(endpoint, params = {}) {
     console.log('🔧 Full URL:', url);
     
     try {
-        // Thử JSONP trước
-        console.log('Attempting JSONP request...');
+        // CHỈ SỬ DỤNG JSONP - vì Google Apps Script CORS chỉ hoạt động với JSONP
+        console.log('Using JSONP request...');
         const data = await jsonpRequest(url);
         
         console.log('✅ JSONP Success:', data);
@@ -161,6 +159,7 @@ async function apiCall(endpoint, params = {}) {
         if (!isOnline) {
             isOnline = true;
             updateConnectionStatus();
+            showAlert('🌐 Connected to API', 'success');
         }
         
         return data;
@@ -168,45 +167,10 @@ async function apiCall(endpoint, params = {}) {
     } catch (jsonpError) {
         console.error('❌ JSONP failed:', jsonpError);
         
-        // Fallback to fetch
-        try {
-            console.log('Attempting Fetch request...');
-            
-            const fetchUrl = queryParams.length > 0 
-                ? `${url}&_fetch=${Date.now()}` 
-                : `${url}?_fetch=${Date.now()}`;
-            
-            const response = await fetch(fetchUrl, { 
-                mode: 'cors',
-                credentials: 'omit',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log('✅ Fetch Success:', data);
-            
-            if (!isOnline) {
-                isOnline = true;
-                updateConnectionStatus();
-            }
-            
-            return data;
-            
-        } catch (fetchError) {
-            console.error('❌ Fetch also failed:', fetchError);
-            console.error('Both JSONP and Fetch failed');
-        }
-        
         // Chuyển sang offline mode
         isOnline = false;
         updateConnectionStatus();
-        throw new Error('Connection failed - Both JSONP and Fetch failed');
+        throw new Error('Connection failed: ' + jsonpError.message);
     }
 }
 
