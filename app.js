@@ -57,7 +57,7 @@ function switchTab(tabName) {
     event.target.classList.add('active');
 }
 
-// JSONP Request function - Fixed script loading
+// JSONP Request function - Fixed to ignore spurious errors
 function jsonpRequest(url) {
     return new Promise((resolve, reject) => {
         requestId++;
@@ -65,18 +65,23 @@ function jsonpRequest(url) {
         let timeoutId;
         let scriptElement;
         let isResolved = false;
+        let callbackReceived = false;
         
         // Tạo callback function
         window[callbackName] = function(data) {
             if (isResolved) return;
+            
+            callbackReceived = true;
             isResolved = true;
             
             console.log('✅ JSONP callback received:', data);
             if (timeoutId) clearTimeout(timeoutId);
+            
+            // Resolve ngay lập tức
             resolve(data);
             
-            // Cleanup sau một chút
-            setTimeout(() => cleanup(), 100);
+            // Cleanup sau
+            setTimeout(() => cleanup(), 200);
         };
 
         // Cleanup function
@@ -89,7 +94,7 @@ function jsonpRequest(url) {
                     scriptElement.parentNode.removeChild(scriptElement);
                 }
             } catch (e) {
-                console.warn('Cleanup warning:', e);
+                // Ignore cleanup errors
             }
         }
 
@@ -98,24 +103,26 @@ function jsonpRequest(url) {
         scriptElement.type = 'text/javascript';
         scriptElement.async = true;
         
-        // Xử lý URL - đảm bảo có dấu ? hoặc &
+        // Xử lý URL
         const separator = url.includes('?') ? '&' : '?';
         scriptElement.src = url + separator + 'callback=' + callbackName;
         
         console.log('🔧 JSONP Request URL:', scriptElement.src);
         
-        // Xử lý lỗi
+        // Xử lý lỗi - CHỈ reject nếu callback chưa nhận được
         scriptElement.onerror = function(error) {
-            if (isResolved) return;
-            isResolved = true;
+            // Nếu callback đã nhận rồi, ignore error này
+            if (callbackReceived || isResolved) {
+                console.log('ℹ️ Script error ignored (callback already received)');
+                return;
+            }
             
-            console.error('❌ Script load error:', error);
+            isResolved = true;
+            console.error('❌ Script load error (no callback received)');
             if (timeoutId) clearTimeout(timeoutId);
             reject(new Error('JSONP request failed - script load error'));
             cleanup();
         };
-        
-        // Không cần onload vì callback sẽ tự gọi
         
         // Append script vào head
         try {
@@ -129,10 +136,10 @@ function jsonpRequest(url) {
         
         // Timeout after 20 seconds
         timeoutId = setTimeout(() => {
-            if (isResolved) return;
-            isResolved = true;
+            if (isResolved || callbackReceived) return;
             
-            console.error('❌ Request timeout');
+            isResolved = true;
+            console.error('❌ Request timeout - no callback received');
             reject(new Error('Request timeout after 20 seconds'));
             cleanup();
         }, 20000);
