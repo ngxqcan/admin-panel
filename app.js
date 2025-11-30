@@ -1,6 +1,6 @@
 // Configuration
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbzl45r61HF5gXPJxXl5aDB6miEBK7ZQ4z7IGH0g6sHPKv7LNFMErW7JJV2J5iNLh02J1g/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzjKlPQz3SzWAxxzl4z8EwPJIwg0emkPnK6-NW5cDTPHVQ9ZvOy4J2Gqg_28Z3-i27oaw/exec',
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
     REQUEST_TIMEOUT: 15000
@@ -759,3 +759,4 @@ window.addEventListener('offline', () => {
 });
 
 console.log('🚀 Admin Panel Ready!');
+
