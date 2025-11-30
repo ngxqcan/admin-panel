@@ -51,15 +51,17 @@ function switchTab(tabName) {
     event.target.classList.add('active');
 }
 
-// JSONP Request function - Optimized
+// JSONP Request function - Fixed
 function jsonpRequest(url) {
     return new Promise((resolve, reject) => {
         requestId++;
         const callbackName = 'jsonpCallback_' + requestId;
         let timeoutId;
+        let scriptElement;
         
         // Tạo callback function
         window[callbackName] = function(data) {
+            console.log('✅ JSONP callback received:', data);
             if (timeoutId) clearTimeout(timeoutId);
             resolve(data);
             cleanup();
@@ -67,31 +69,47 @@ function jsonpRequest(url) {
 
         // Cleanup function
         function cleanup() {
-            delete window[callbackName];
-            const script = document.getElementById('jsonpScript_' + callbackName);
-            if (script) script.remove();
+            try {
+                delete window[callbackName];
+                if (scriptElement && scriptElement.parentNode) {
+                    scriptElement.parentNode.removeChild(scriptElement);
+                }
+            } catch (e) {
+                console.error('Cleanup error:', e);
+            }
         }
 
         // Tạo script tag
-        const script = document.createElement('script');
-        script.id = 'jsonpScript_' + callbackName;
-        script.src = url + '&callback=' + callbackName + '&t=' + Date.now();
+        scriptElement = document.createElement('script');
+        scriptElement.id = 'jsonpScript_' + callbackName;
         
-        script.onerror = () => {
+        // Xử lý URL - đảm bảo có dấu ? hoặc &
+        const separator = url.includes('?') ? '&' : '?';
+        scriptElement.src = url + separator + 'callback=' + callbackName + '&_t=' + Date.now();
+        
+        console.log('🔧 JSONP Request URL:', scriptElement.src);
+        
+        scriptElement.onerror = (error) => {
+            console.error('❌ Script load error:', error);
             if (timeoutId) clearTimeout(timeoutId);
-            reject(new Error('JSONP request failed'));
+            reject(new Error('JSONP request failed - script load error'));
             cleanup();
         };
         
-        document.head.appendChild(script);
+        scriptElement.onload = () => {
+            console.log('✅ Script loaded successfully');
+        };
         
-        // Timeout
+        document.head.appendChild(scriptElement);
+        
+        // Timeout after 20 seconds
         timeoutId = setTimeout(() => {
+            console.error('❌ Request timeout');
             if (window[callbackName]) {
-                reject(new Error('Request timeout'));
+                reject(new Error('Request timeout after 20 seconds'));
                 cleanup();
             }
-        }, CONFIG.REQUEST_TIMEOUT);
+        }, 20000);
     });
 }
 
@@ -109,23 +127,33 @@ async function apiCallWithRetry(endpoint, params = {}, retries = CONFIG.MAX_RETR
     }
 }
 
-// Universal API call function - Updated for new API
+// Universal API call function - Fixed
 async function apiCall(endpoint, params = {}) {
-    // Build URL với cache buster
-    let url = `${CONFIG.API_URL}/${endpoint}?_=${Date.now()}`;
+    // Build URL - FIX: Đảm bảo format URL đúng
+    let url = `${CONFIG.API_URL}/${endpoint}`;
     
-    // Thêm các parameters khác
+    // Thêm parameters
+    const queryParams = [];
     Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
-            url += `&${key}=${encodeURIComponent(params[key])}`;
+            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
         }
     });
     
-    console.log('🔧 API Call:', endpoint, params);
+    // Nếu có params, thêm vào URL
+    if (queryParams.length > 0) {
+        url += '?' + queryParams.join('&');
+    }
+    
+    console.log('🔧 API Call:', endpoint);
+    console.log('🔧 Full URL:', url);
     
     try {
-        // Sử dụng JSONP cho cross-origin
+        // Thử JSONP trước
+        console.log('Attempting JSONP request...');
         const data = await jsonpRequest(url);
+        
+        console.log('✅ JSONP Success:', data);
         
         // Cập nhật trạng thái online
         if (!isOnline) {
@@ -133,15 +161,20 @@ async function apiCall(endpoint, params = {}) {
             updateConnectionStatus();
         }
         
-        console.log('✅ API Response:', data);
         return data;
         
-    } catch (error) {
-        console.error('❌ API Call failed:', error);
+    } catch (jsonpError) {
+        console.error('❌ JSONP failed:', jsonpError);
         
-        // Fallback to fetch nếu JSONP fail
+        // Fallback to fetch
         try {
-            const response = await fetch(url, { 
+            console.log('Attempting Fetch request...');
+            
+            const fetchUrl = queryParams.length > 0 
+                ? `${url}&_fetch=${Date.now()}` 
+                : `${url}?_fetch=${Date.now()}`;
+            
+            const response = await fetch(fetchUrl, { 
                 mode: 'cors',
                 credentials: 'omit',
                 headers: {
@@ -149,25 +182,29 @@ async function apiCall(endpoint, params = {}) {
                 }
             });
             
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
+            console.log('✅ Fetch Success:', data);
             
             if (!isOnline) {
                 isOnline = true;
                 updateConnectionStatus();
             }
             
-            console.log('✅ Fetch Response:', data);
             return data;
             
         } catch (fetchError) {
             console.error('❌ Fetch also failed:', fetchError);
+            console.error('Both JSONP and Fetch failed');
         }
         
         // Chuyển sang offline mode
         isOnline = false;
         updateConnectionStatus();
-        throw error;
+        throw new Error('Connection failed - Both JSONP and Fetch failed');
     }
 }
 
@@ -588,15 +625,36 @@ function updateConnectionStatus() {
     }
 }
 
-// Test API connection
+// Test API connection - Enhanced
 async function testConnection() {
+    console.log('🔍 Testing connection to API...');
+    console.log('API URL:', CONFIG.API_URL);
+    
     try {
-        const result = await apiCall('test');
-        console.log('Connection test result:', result);
-        return result && result.success;
+        // Test với endpoint 'test' trước
+        const result = await apiCall('test', {});
+        console.log('Test result:', result);
+        
+        if (result && result.success) {
+            console.log('✅ Connection successful!');
+            return true;
+        } else {
+            console.log('⚠️ API responded but success=false:', result);
+            return false;
+        }
     } catch (error) {
-        console.log('🔴 Connection test failed:', error.message);
-        return false;
+        console.error('🔴 Connection test failed:', error);
+        
+        // Thử lại với getkeys nếu test fail
+        try {
+            console.log('Trying getkeys endpoint...');
+            const result2 = await apiCall('getkeys', {});
+            console.log('getkeys result:', result2);
+            return result2 && result2.success;
+        } catch (error2) {
+            console.error('🔴 getkeys also failed:', error2);
+            return false;
+        }
     }
 }
 
