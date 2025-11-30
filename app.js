@@ -16,28 +16,27 @@ document.addEventListener('DOMContentLoaded', function() {
     initApp();
 });
 
-// Khởi tạo ứng dụng
+// Khởi tạo ứng dụng - Skip test, load data trực tiếp
 async function initApp() {
     console.log('🚀 Admin Panel Ready!');
-    showAlert('🔍 Connecting to API...', 'info');
+    showAlert('🔍 Loading data...', 'info');
     
     // Đợi một chút để đảm bảo DOM ready
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Test connection
-    const connected = await testConnection();
-    
-    if (connected) {
-        console.log('✅ API Connected!');
-        showAlert('✅ Connected successfully!', 'success');
+    // Load data trực tiếp thay vì test trước
+    try {
         await loadKeysData();
-    } else {
-        console.log('⚠️ Using offline mode');
+        // Nếu load thành công, set online
+        isOnline = true;
+        updateConnectionStatus();
+    } catch (error) {
+        console.log('⚠️ Load failed, using offline mode');
         showAlert('⚠️ Cannot connect to API. Using demo data.', 'warning');
         await loadMockData();
+        isOnline = false;
+        updateConnectionStatus();
     }
-    
-    updateConnectionStatus();
 }
 
 // Tab switching
