@@ -1,6 +1,6 @@
 // Configuration
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbwI3sKcP-Fy8xw0tTpP7Jv8WZhEs7mEYXPcZQac72Y43a-hoE_qCbgaqcQQ4bGDqArp9w/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzj0h071fHYEqH2b9mxzW7VOdr_AkWHiOm5vO_I558yjW6UqqRkgYh4AUSSO2xxEnH6/exec',
     SECRET_KEY: '271006',
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000
