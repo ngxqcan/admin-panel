@@ -127,10 +127,12 @@ async function apiCallWithRetry(endpoint, params = {}, retries = CONFIG.MAX_RETR
     }
 }
 
-// Universal API call function - Fixed
+// Universal API call function - Fixed URL Building
 async function apiCall(endpoint, params = {}) {
-    // Build URL - FIX: Đảm bảo format URL đúng
-    let url = `${CONFIG.API_URL}/${endpoint}`;
+    // Build URL - FIXED: Google Apps Script cần format: /exec/endpoint
+    // Không thêm dấu / nếu API_URL đã có /exec
+    const baseUrl = CONFIG.API_URL;
+    let url = baseUrl.endsWith('/exec') ? `${baseUrl}/${endpoint}` : `${baseUrl}${endpoint}`;
     
     // Thêm parameters
     const queryParams = [];
