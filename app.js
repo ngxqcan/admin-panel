@@ -1,9 +1,9 @@
 // Configuration
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbzj0h071fHYEqH2b9mxzW7VOdr_AkWHiOm5vO_I558yjW6UqqRkgYh4AUSSO2xxEnH6/exec',
-    SECRET_KEY: '271006',
+    API_URL: 'https://script.google.com/macros/s/AKfycbyMbqmS6RK4Q09yaLwYyyTIdCYFq0mD4FpoZGRKIr1Poaqqrzt157fk7dMG4hravdGVfA/exec',
     MAX_RETRIES: 3,
-    RETRY_DELAY: 1000
+    RETRY_DELAY: 1000,
+    REQUEST_TIMEOUT: 15000
 };
 
 let allKeys = [];
@@ -12,7 +12,7 @@ let isOnline = true;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Admin Panel initialized - Optimized for Hosting');
+    console.log('🚀 Admin Panel initialized');
     initApp();
 });
 
@@ -34,7 +34,7 @@ async function initApp() {
     updateConnectionStatus();
 }
 
-// Tab switching - optimized
+// Tab switching
 function switchTab(tabName) {
     // Ẩn tất cả tab content
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -85,13 +85,13 @@ function jsonpRequest(url) {
         
         document.head.appendChild(script);
         
-        // Timeout after 15 seconds
+        // Timeout
         timeoutId = setTimeout(() => {
             if (window[callbackName]) {
                 reject(new Error('Request timeout'));
                 cleanup();
             }
-        }, 15000);
+        }, CONFIG.REQUEST_TIMEOUT);
     });
 }
 
@@ -103,16 +103,16 @@ async function apiCallWithRetry(endpoint, params = {}, retries = CONFIG.MAX_RETR
         } catch (error) {
             if (attempt === retries) throw error;
             
-            console.log(`Retry attempt ${attempt} for ${endpoint}`);
+            console.log(`Retry attempt ${attempt}/${retries} for ${endpoint}`);
             await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY * attempt));
         }
     }
 }
 
-// Universal API call function - Optimized
+// Universal API call function - Updated for new API
 async function apiCall(endpoint, params = {}) {
-    // Build URL với secret key và cache buster
-    let url = `${CONFIG.API_URL}/${endpoint}?secret=${CONFIG.SECRET_KEY}&_=${Date.now()}`;
+    // Build URL với cache buster
+    let url = `${CONFIG.API_URL}/${endpoint}?_=${Date.now()}`;
     
     // Thêm các parameters khác
     Object.keys(params).forEach(key => {
@@ -124,7 +124,7 @@ async function apiCall(endpoint, params = {}) {
     console.log('🔧 API Call:', endpoint, params);
     
     try {
-        // Ưu tiên JSONP cho cross-origin
+        // Sử dụng JSONP cho cross-origin
         const data = await jsonpRequest(url);
         
         // Cập nhật trạng thái online
@@ -133,40 +133,45 @@ async function apiCall(endpoint, params = {}) {
             updateConnectionStatus();
         }
         
+        console.log('✅ API Response:', data);
         return data;
+        
     } catch (error) {
         console.error('❌ API Call failed:', error);
         
-        // Fallback to fetch (chỉ trên cùng origin)
-        if (window.location.protocol === 'https:') {
-            try {
-                const response = await fetch(url, { 
-                    mode: 'cors',
-                    credentials: 'omit'
-                });
-                
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                
-                if (!isOnline) {
-                    isOnline = true;
-                    updateConnectionStatus();
+        // Fallback to fetch nếu JSONP fail
+        try {
+            const response = await fetch(url, { 
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Accept': 'application/json'
                 }
-                
-                return data;
-            } catch (fetchError) {
-                console.error('❌ Fetch also failed:', fetchError);
+            });
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            
+            if (!isOnline) {
+                isOnline = true;
+                updateConnectionStatus();
             }
+            
+            console.log('✅ Fetch Response:', data);
+            return data;
+            
+        } catch (fetchError) {
+            console.error('❌ Fetch also failed:', fetchError);
         }
         
         // Chuyển sang offline mode
         isOnline = false;
         updateConnectionStatus();
-        throw new Error('Connection failed - Using offline mode');
+        throw error;
     }
 }
 
-// Load keys data - Optimized
+// Load keys data
 async function loadKeysData() {
     showAlert('📥 Loading keys data...', 'info');
     
@@ -188,35 +193,53 @@ async function loadKeysData() {
     }
 }
 
-// Mock data for fallback - Enhanced
+// Mock data for fallback
 async function loadMockData() {
     showAlert('🔄 Loading demo data...', 'info');
     
-    // Tạo mock data thực tế hơn
+    const today = new Date();
+    const futureDate = new Date(today);
+    futureDate.setDate(futureDate.getDate() + 30);
+    
+    const pastDate = new Date(today);
+    pastDate.setDate(pastDate.getDate() - 10);
+    
     const mockKeys = [
         {
-            key: 'VIP-KEY-2024',
-            expire_date: '2025-12-31',
+            key: 'DEMO-VIP-2024',
+            expire_date: formatDateISO(futureDate),
             status: 'active',
-            hwid: 'USER-PC-001',
-            notes: 'Premium user',
-            created_date: '2024-01-15'
+            hwid: 'DEMO-PC-001',
+            notes: 'Demo premium user',
+            created_date: formatDateISO(today),
+            days_remaining: 30
         },
         {
-            key: 'TEST-KEY-001',
-            expire_date: '2024-06-30',
+            key: 'DEMO-TEST-001',
+            expire_date: formatDateISO(futureDate),
             status: 'active', 
-            hwid: 'TEST-HWID',
-            notes: 'Testing account',
-            created_date: '2024-01-10'
+            hwid: '',
+            notes: 'Demo testing account',
+            created_date: formatDateISO(today),
+            days_remaining: 30
         },
         {
-            key: 'BANNED-KEY-002',
-            expire_date: '2024-12-31',
+            key: 'DEMO-BANNED-002',
+            expire_date: formatDateISO(futureDate),
             status: 'banned',
-            hwid: 'HWID-456789',
-            notes: 'Violation of terms',
-            created_date: '2024-01-05'
+            hwid: 'BANNED-HWID-456',
+            notes: 'Demo banned account',
+            created_date: formatDateISO(pastDate),
+            days_remaining: 0
+        },
+        {
+            key: 'DEMO-EXPIRED-003',
+            expire_date: formatDateISO(pastDate),
+            status: 'expired',
+            hwid: 'EXPIRED-HWID-789',
+            notes: 'Demo expired account',
+            created_date: formatDateISO(pastDate),
+            days_remaining: 0
         }
     ];
     
@@ -226,72 +249,136 @@ async function loadMockData() {
     showAlert('📋 Demo data loaded (Offline Mode)', 'warning');
 }
 
-// Render keys table - Optimized
+// Render keys table
 function renderKeysTable(keys) {
     const tbody = document.getElementById('keysTable');
     
     if (!keys || keys.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">No keys found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">No keys found</td></tr>';
         return;
     }
 
-    tbody.innerHTML = keys.map(key => `
-        <tr>
+    tbody.innerHTML = keys.map(key => {
+        const isExpired = key.is_expired || new Date(key.expire_date) < new Date();
+        const statusClass = key.status === 'banned' ? 'banned' : 
+                           isExpired ? 'expired' : 'active';
+        const statusText = key.status === 'banned' ? 'BANNED' : 
+                          isExpired ? 'EXPIRED' : 'ACTIVE';
+        
+        return `
+        <tr class="${statusClass}">
             <td><strong>${escapeHtml(key.key)}</strong></td>
             <td>${formatDate(key.expire_date)}</td>
             <td>
-                <span class="status-${key.status}">${key.status.toUpperCase()}</span>
+                <span class="status-badge status-${statusClass}">${statusText}</span>
             </td>
-            <td>${escapeHtml(key.hwid) || '<em>Not set</em>'}</td>
+            <td>${escapeHtml(key.hwid) || '<em style="color: #999;">Not activated</em>'}</td>
             <td>${escapeHtml(key.notes) || ''}</td>
+            <td>${key.days_remaining !== undefined ? key.days_remaining : calculateDaysRemaining(key.expire_date)} days</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn btn-danger" onclick="banKey('${escapeHtml(key.key)}')" 
+                    <button class="btn btn-danger" 
+                            onclick="banKey('${escapeHtml(key.key)}')" 
                             ${key.status === 'banned' ? 'disabled' : ''}
-                            title="Ban this key">
-                        ${key.status === 'banned' ? 'BANNED' : 'BAN'}
+                            title="${key.status === 'banned' ? 'Already banned' : 'Ban this key'}">
+                        ${key.status === 'banned' ? '🚫 BANNED' : '🚫 BAN'}
                     </button>
-                    <button class="btn btn-delete" onclick="deleteKey('${escapeHtml(key.key)}')" 
-                            title="Delete this key permanently">
-                        DELETE
+                    <button class="btn btn-update" 
+                            onclick="showUpdateModal('${escapeHtml(key.key)}')" 
+                            title="Update key info">
+                        ✏️ UPDATE
+                    </button>
+                    <button class="btn btn-delete" 
+                            onclick="deleteKey('${escapeHtml(key.key)}')" 
+                            title="Delete permanently">
+                        🗑️ DELETE
                     </button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
-// Update statistics - Optimized
+// Calculate days remaining
+function calculateDaysRemaining(expireDate) {
+    try {
+        const expire = new Date(expireDate);
+        const today = new Date();
+        const diff = expire - today;
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        return Math.max(0, days);
+    } catch (e) {
+        return 0;
+    }
+}
+
+// Update statistics
 function updateStats() {
-    if (!allKeys.length) return;
+    if (!allKeys.length) {
+        setStatValue('totalKeys', 0);
+        setStatValue('activeKeys', 0);
+        setStatValue('bannedUsers', 0);
+        setStatValue('expiredKeys', 0);
+        setStatValue('totalUsers', 0);
+        setStatValue('activeUsers', 0);
+        updateProgressBars(0, 0, 0);
+        return;
+    }
     
     const totalKeys = allKeys.length;
-    const activeKeys = allKeys.filter(k => k.status === 'active').length;
+    const activeKeys = allKeys.filter(k => {
+        const isExpired = new Date(k.expire_date) < new Date();
+        return k.status === 'active' && !isExpired;
+    }).length;
     const bannedKeys = allKeys.filter(k => k.status === 'banned').length;
-    const expiredKeys = allKeys.filter(k => new Date(k.expire_date) < new Date()).length;
-    const activeUsers = Math.max(0, activeKeys - expiredKeys);
+    const expiredKeys = allKeys.filter(k => {
+        return new Date(k.expire_date) < new Date() || k.status === 'expired';
+    }).length;
 
-    // Cập nhật DOM một lần
-    const stats = {
-        'totalKeys': totalKeys,
-        'activeKeys': activeKeys,
-        'totalUsers': totalKeys,
-        'bannedUsers': bannedKeys,
-        'expiredKeys': expiredKeys,
-        'activeUsers': activeUsers
-    };
-
-    Object.keys(stats).forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = stats[id];
-        }
-    });
+    setStatValue('totalKeys', totalKeys);
+    setStatValue('activeKeys', activeKeys);
+    setStatValue('bannedUsers', bannedKeys);
+    setStatValue('expiredKeys', expiredKeys);
+    setStatValue('totalUsers', totalKeys);
+    setStatValue('activeUsers', activeKeys);
+    
+    // Update progress bars
+    updateProgressBars(activeKeys, bannedKeys, expiredKeys);
 }
 
-// Ban key - Optimized
+function setStatValue(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+// Update progress bars for analytics
+function updateProgressBars(active, banned, expired) {
+    const total = allKeys.length || 1; // Avoid division by zero
+    
+    const activePercent = Math.round((active / total) * 100);
+    const bannedPercent = Math.round((banned / total) * 100);
+    const expiredPercent = Math.round((expired / total) * 100);
+    
+    // Update progress bars
+    const activeProgress = document.getElementById('activeProgress');
+    const bannedProgress = document.getElementById('bannedProgress');
+    const expiredProgress = document.getElementById('expiredProgress');
+    
+    if (activeProgress) activeProgress.style.width = activePercent + '%';
+    if (bannedProgress) bannedProgress.style.width = bannedPercent + '%';
+    if (expiredProgress) expiredProgress.style.width = expiredPercent + '%';
+    
+    // Update percentages
+    setStatValue('activePercentage', activePercent + '%');
+    setStatValue('bannedPercentage', bannedPercent + '%');
+    setStatValue('expiredPercentage', expiredPercent + '%');
+}
+
+// Ban key
 async function banKey(key) {
-    if (!confirm(`🚫 Ban key: ${key}?\nThis will prevent the key from being used.`)) {
+    if (!confirm(`🚫 Ban key: ${key}?\n\nThis will prevent the key from being used.`)) {
         return;
     }
 
@@ -301,11 +388,11 @@ async function banKey(key) {
         const result = await apiCallWithRetry('ban', { key: key });
         
         if (result.success) {
-            showAlert(`✅ Successfully banned key: ${key}`, 'success');
+            showAlert(`✅ ${result.message}`, 'success');
             // Update local data
-            const keyIndex = allKeys.findIndex(k => k.key === key);
-            if (keyIndex !== -1) {
-                allKeys[keyIndex].status = 'banned';
+            const keyObj = allKeys.find(k => k.key === key);
+            if (keyObj) {
+                keyObj.status = 'banned';
                 renderKeysTable(allKeys);
                 updateStats();
             }
@@ -318,9 +405,9 @@ async function banKey(key) {
     }
 }
 
-// Delete key - Optimized
+// Delete key
 async function deleteKey(key) {
-    if (!confirm(`🗑️ DELETE key: ${key}?\n⚠️ This action cannot be undone!`)) {
+    if (!confirm(`🗑️ DELETE key: ${key}?\n\n⚠️ This action cannot be undone!`)) {
         return;
     }
 
@@ -330,7 +417,7 @@ async function deleteKey(key) {
         const result = await apiCallWithRetry('deletekey', { key: key });
         
         if (result.success) {
-            showAlert(`✅ Successfully deleted key: ${key}`, 'success');
+            showAlert(`✅ ${result.message}`, 'success');
             // Remove from local data
             allKeys = allKeys.filter(k => k.key !== key);
             renderKeysTable(allKeys);
@@ -344,7 +431,7 @@ async function deleteKey(key) {
     }
 }
 
-// Filter keys - Optimized
+// Filter keys
 function filterKeys() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     
@@ -363,11 +450,10 @@ function filterKeys() {
     renderKeysTable(filteredKeys);
     
     // Hiển thị kết quả tìm kiếm
-    const searchInfo = document.getElementById('searchInfo');
-    if (searchInfo) {
-        searchInfo.textContent = filteredKeys.length === allKeys.length ? 
-            '' : `Found ${filteredKeys.length} keys`;
-    }
+    showAlert(filteredKeys.length === allKeys.length ? 
+        `Showing all ${allKeys.length} keys` : 
+        `Found ${filteredKeys.length} of ${allKeys.length} keys`, 
+        'info');
 }
 
 // Add new key modal
@@ -378,11 +464,26 @@ function showAddKeyModal() {
 
 function hideAddKeyModal() {
     document.getElementById('addKeyModal').style.display = 'none';
-    // Reset form
     document.getElementById('addKeyForm').reset();
 }
 
-// Add new key - Optimized
+// Update key modal
+function showUpdateModal(key) {
+    const keyObj = allKeys.find(k => k.key === key);
+    if (!keyObj) return;
+    
+    document.getElementById('updateKey').value = key;
+    document.getElementById('updateExpireDays').value = keyObj.days_remaining || 30;
+    document.getElementById('updateNotes').value = keyObj.notes || '';
+    document.getElementById('updateKeyModal').style.display = 'block';
+}
+
+function hideUpdateModal() {
+    document.getElementById('updateKeyModal').style.display = 'none';
+    document.getElementById('updateKeyForm').reset();
+}
+
+// Add new key
 async function addNewKey(event) {
     if (event) event.preventDefault();
     
@@ -397,7 +498,7 @@ async function addNewKey(event) {
     }
 
     if (!expireDays || expireDays < 1 || expireDays > 3650) {
-        showAlert('❌ Please enter valid expire days (1-3650)', 'error');
+        showAlert('❌ Expire days must be between 1 and 3650', 'error');
         return;
     }
 
@@ -417,20 +518,11 @@ async function addNewKey(event) {
         });
         
         if (result.success) {
-            // Thêm key mới vào danh sách
-            allKeys.push({
-                key: newKey,
-                expire_date: result.expire_date,
-                status: 'active',
-                hwid: '',
-                notes: notes,
-                created_date: new Date().toISOString().split('T')[0]
-            });
+            showAlert('✅ ' + result.message, 'success');
             
-            renderKeysTable(allKeys);
-            updateStats();
+            // Reload data để đảm bảo đồng bộ
+            await loadKeysData();
             hideAddKeyModal();
-            showAlert('✅ Key added successfully!', 'success');
             
         } else {
             throw new Error(result.message || 'Add key failed');
@@ -441,7 +533,42 @@ async function addNewKey(event) {
     }
 }
 
-// Refresh data - Optimized
+// Update key
+async function updateKey(event) {
+    if (event) event.preventDefault();
+    
+    const key = document.getElementById('updateKey').value.trim();
+    const expireDays = parseInt(document.getElementById('updateExpireDays').value);
+    const notes = document.getElementById('updateNotes').value.trim();
+
+    if (!key || !expireDays) {
+        showAlert('❌ Please fill all required fields', 'error');
+        return;
+    }
+
+    showAlert('⏳ Updating key...', 'info');
+
+    try {
+        const result = await apiCallWithRetry('updatekey', {
+            key: key,
+            expire_days: expireDays,
+            notes: notes
+        });
+        
+        if (result.success) {
+            showAlert('✅ ' + result.message, 'success');
+            await loadKeysData();
+            hideUpdateModal();
+        } else {
+            throw new Error(result.message || 'Update failed');
+        }
+    } catch (error) {
+        console.error('❌ Update error:', error);
+        showAlert('❌ Failed to update key: ' + error.message, 'error');
+    }
+}
+
+// Refresh data
 async function refreshData() {
     showAlert('🔄 Refreshing data...', 'info');
     await loadKeysData();
@@ -461,10 +588,11 @@ function updateConnectionStatus() {
     }
 }
 
-// Test API connection - Enhanced
+// Test API connection
 async function testConnection() {
     try {
-        const result = await apiCall('getkeys');
+        const result = await apiCall('test');
+        console.log('Connection test result:', result);
         return result && result.success;
     } catch (error) {
         console.log('🔴 Connection test failed:', error.message);
@@ -472,20 +600,34 @@ async function testConnection() {
     }
 }
 
-// Utility functions - Optimized
+// Utility functions
 function formatDate(dateString) {
     try {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return isNaN(date.getTime()) ? dateString : date.toLocaleDateString();
+        if (isNaN(date.getTime())) return dateString;
+        
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
     } catch (e) {
         return dateString;
     }
 }
 
+function formatDateISO(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function showAlert(message, type) {
     const alert = document.getElementById('alert');
-    if (!alert) return;
+    if (!alert) {
+        console.log(`Alert: [${type}] ${message}`);
+        return;
+    }
     
     alert.textContent = message;
     alert.className = `alert alert-${type} show`;
@@ -510,12 +652,17 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-// Event listeners - Optimized
+// Event listeners
 document.getElementById('addKeyModal')?.addEventListener('click', function(e) {
     if (e.target === this) hideAddKeyModal();
 });
 
+document.getElementById('updateKeyModal')?.addEventListener('click', function(e) {
+    if (e.target === this) hideUpdateModal();
+});
+
 document.getElementById('addKeyForm')?.addEventListener('submit', addNewKey);
+document.getElementById('updateKeyForm')?.addEventListener('submit', updateKey);
 
 // Search with debounce
 let searchTimeout;
@@ -524,11 +671,33 @@ document.getElementById('searchInput')?.addEventListener('input', function() {
     searchTimeout = setTimeout(filterKeys, 300);
 });
 
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // ESC to close modals
+    if (e.key === 'Escape') {
+        hideAddKeyModal();
+        hideUpdateModal();
+    }
+    
+    // Ctrl/Cmd + K to add key
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        showAddKeyModal();
+    }
+    
+    // Ctrl/Cmd + R to refresh
+    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refreshData();
+    }
+});
+
 // Online/offline detection
 window.addEventListener('online', () => {
     isOnline = true;
     updateConnectionStatus();
     showAlert('🌐 Connection restored', 'success');
+    loadKeysData();
 });
 
 window.addEventListener('offline', () => {
@@ -537,4 +706,4 @@ window.addEventListener('offline', () => {
     showAlert('⚠️ You are offline', 'warning');
 });
 
-console.log('🚀 Optimized Admin Panel Ready for Hosting!');
+console.log('🚀 Admin Panel Ready!');
