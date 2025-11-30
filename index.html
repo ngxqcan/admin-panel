@@ -4,268 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loader Admin Panel</title>
-    <style>
-        :root {
-            --primary: #0f1419;
-            --secondary: #1a1f2e;
-            --accent: #00ff88;
-            --accent-dark: #00cc6a;
-            --text: #ffffff;
-            --text-secondary: #8b949e;
-            --danger: #ff4757;
-            --warning: #ffa502;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--accent);
-            padding-bottom: 20px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            background: linear-gradient(45deg, var(--accent), #00ccff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .sidebar {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .main-content {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid var(--accent);
-        }
-
-        .card h3 {
-            color: var(--accent);
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .profile-section {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .profile-badge {
-            background: linear-gradient(45deg, var(--accent), var(--accent-dark));
-            color: var(--primary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: var(--accent);
-        }
-
-        .stat-label {
-            font-size: 0.8em;
-            color: var(--text-secondary);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-secondary);
-            font-size: 0.9em;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            color: var(--text);
-            font-size: 14px;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .btn {
-            background: linear-gradient(45deg, var(--accent), var(--accent-dark));
-            color: var(--primary);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
-        }
-
-        .btn-danger {
-            background: linear-gradient(45deg, var(--danger), #ff3742);
-        }
-
-        .btn-warning {
-            background: linear-gradient(45deg, var(--warning), #ff8c00);
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .table th,
-        .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .table th {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        .status-active {
-            color: var(--accent);
-            font-weight: bold;
-        }
-
-        .status-banned {
-            color: var(--danger);
-            font-weight: bold;
-        }
-
-        .search-box {
-            margin-bottom: 20px;
-        }
-
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab.active {
-            border-bottom-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--text-secondary);
-        }
-
-        .alert {
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .alert-success {
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-        }
-
-        .alert-error {
-            background: rgba(255, 71, 87, 0.1);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>LOADER ADMIN PANEL</h1>
-            <p>Key Management System</p>
+            <h1>TECHNO VERSE PANEL</h1>
+            <p></p>
         </div>
 
         <div class="grid">
@@ -298,13 +43,10 @@
                     <button class="btn" onclick="showAddKeyModal()" style="width: 100%; margin-bottom: 10px;">
                         + Add New Key
                     </button>
-                    <button class="btn btn-warning" onclick="refreshData()" style="width: 100%;">
+                    <button class="btn btn-secondary" onclick="refreshData()" style="width: 100%;">
                         🔄 Refresh Data
                     </button>
                 </div>
-
-                <!-- ĐÃ XÓA Detection Engine và AI Settings -->
-                
             </div>
 
             <!-- Main Content -->
@@ -312,7 +54,6 @@
                 <div class="tabs">
                     <div class="tab active" onclick="switchTab('keys')">Keys Management</div>
                     <div class="tab" onclick="switchTab('analytics')">Analytics</div>
-                    <!-- ĐÃ XÓA Settings Tab -->
                 </div>
 
                 <!-- Keys Tab -->
@@ -368,17 +109,14 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- ĐÃ XÓA Settings Tab Content -->
-                
             </div>
         </div>
     </div>
 
     <!-- Add Key Modal -->
-    <div id="addKeyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--secondary); padding: 30px; border-radius: 15px; width: 400px;">
-            <h3 style="color: var(--accent); margin-bottom: 20px;">Add New Key</h3>
+    <div id="addKeyModal" class="modal">
+        <div class="modal-content">
+            <h3>Add New Key</h3>
             <div class="form-group">
                 <label>Key</label>
                 <input type="text" id="newKey" class="form-control" placeholder="Enter key">
@@ -391,7 +129,7 @@
                 <label>Notes</label>
                 <input type="text" id="keyNotes" class="form-control" placeholder="Optional notes">
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <div class="modal-actions">
                 <button class="btn" onclick="addNewKey()">Add Key</button>
                 <button class="btn btn-danger" onclick="hideAddKeyModal()">Cancel</button>
             </div>
